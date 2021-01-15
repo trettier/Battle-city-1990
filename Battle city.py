@@ -51,7 +51,7 @@ def end_screen(end=False):
 
 
 def load_image(name, colorkey=None, convert=None):
-    fullname = os.path.join(name)
+    fullname = os.path.join("data", name)
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -348,7 +348,7 @@ fps_clock = pygame.time.Clock()
 speed = 2
 direction = [0, -speed]
 movement = None
-lvl = open('level.txt', encoding="utf8").read().split()
+lvl = open('data/level.txt', encoding="utf8").read().split()
 
 main_running = True
 while main_running:
