@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import math
+
 ch = 0
 pygame.init()
 SIZE_SCREEN = SIZE_LENGTH, SIZE_HEIGHT = 852, 788
@@ -31,8 +32,8 @@ def start_screen():
         clock.tick(60)
 
 
-def end_screen(end=False):
-    if not end:
+def end_screen(win=False):
+    if not win:
         fon = pygame.transform.scale(load_image('end.png'), (1024, 896))
     else:
         fon = pygame.transform.scale(load_image('win.png'), (1024, 896))
@@ -79,6 +80,7 @@ def modul(a, speed):
         return [0, int(a[1] // c * speed)]
 
 
+# класс разметки игрового поля, если она нужна
 class Board:
     def __init__(self, wigth, height):
         self.wigth = wigth
@@ -93,11 +95,27 @@ class Board:
         for x in range(self.height):
             for y in range(self.wigth):
                 pygame.draw.rect(screen, pygame.Color(255, 255, 255),
-                                 (x * self.cell_size + self.left, y * self.cell_size + self.top,
+                                 (x * self.cell_size + self.left,
+                                  y * self.cell_size + self.top,
                                   self.cell_size,
                                   self.cell_size), 1)
 
 
+class Border(pygame.sprite.Sprite):
+    # строго вертикальный или строго горизонтальный отрезок
+    def __init__(self, x1, y1, x2, y2):
+        super().__init__(wall_sprite)
+        if x1 == x2:  # вертикальная стенка
+            self.add(vertical_borders)
+            self.image = pygame.Surface([1, y2 - y1])
+            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
+        else:  # горизонтальная стенка
+            self.add(horizontal_borders)
+            self.image = pygame.Surface([x2 - x1, 1])
+            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
+
+
+# класс стены
 class wall(pygame.sprite.Sprite):
     image = load_image("wall_v1.png", convert=(64, 64))
     im_boom = load_image("boom_v1.png", convert=(66, 66))
@@ -121,6 +139,7 @@ class wall(pygame.sprite.Sprite):
                 self.step -= 1
 
 
+# класс управляемого танка
 class main_tank(pygame.sprite.Sprite):
     image11 = load_image("tank_v1.1.1.png", convert=(52, 52))
     image12 = load_image("tank_v1.1.2.png", convert=(52, 52))
@@ -132,7 +151,8 @@ class main_tank(pygame.sprite.Sprite):
     image42 = load_image("tank_v1.4.2.png", convert=(52, 52))
     im_boom = load_image("boom_v1.png", convert=(66, 66))
     all_images = [
-        [image11, image12], [image21, image22], [image31, image32], [image41, image42]
+        [image11, image12], [image21, image22],
+        [image31, image32], [image41, image42]
     ]
 
     def __init__(self, main_tank_sprite, speed):
@@ -196,6 +216,7 @@ class main_tank(pygame.sprite.Sprite):
             self.step -= 1
 
 
+# класс вражеских танков
 class enemy_tank(pygame.sprite.Sprite):
     global ch
     image11 = load_image("tank_v2.1.1.png", convert=(52, 52))
@@ -229,6 +250,7 @@ class enemy_tank(pygame.sprite.Sprite):
         self.images = self.all_images[str(self.direction)]
         self.step = 2
         self.direction_2 = [0, 0]
+        self.k = 0
 
     def update(self, flag, rect, shot):
         if flag:
@@ -263,8 +285,7 @@ class enemy_tank(pygame.sprite.Sprite):
 
         if self.step == 1:
             self.kill()
-            print("sm", )
-            return "plz"
+            score.kill()
 
         if pygame.sprite.spritecollideany(self, bullet_sprite):
             if self.step == 2:
@@ -279,7 +300,7 @@ class enemy_tank(pygame.sprite.Sprite):
             enemy_bullet(self.speed, self.direction_2, self.rect)
 
 
-
+# класс дружественных снарядов
 class main_bullet(pygame.sprite.Sprite):
     image1 = load_image("bul_v1.png", convert=(12, 16))
     image2 = load_image("bul_v2.png", convert=(16, 12))
@@ -311,6 +332,7 @@ class main_bullet(pygame.sprite.Sprite):
             self.kill()
 
 
+# класс вражеских снарядов
 class enemy_bullet(pygame.sprite.Sprite):
     image1 = load_image("bul_v1.png", convert=(12, 16))
     image2 = load_image("bul_v2.png", convert=(16, 12))
@@ -342,6 +364,14 @@ class enemy_bullet(pygame.sprite.Sprite):
             self.kill()
 
 
+class Score():
+    def __init__(self):
+        self.list = 0
+
+    def kill(self):
+        self.list += 1
+
+
 clock = pygame.time.Clock()
 fps = 60
 fps_clock = pygame.time.Clock()
@@ -367,7 +397,7 @@ while main_running:
     ENEMYSPAWN = pygame.USEREVENT + 4
     pygame.time.set_timer(ENEMYSPAWN, 3198)
     spawnpoint = 0
-    points = [(10, 10), (788, 10), (10, 335), (788, 340)]
+    points = [(11, 11), (787, 11), (11, 335), (787, 340)]
     ch = 0
     ch_flag = False
 
@@ -376,8 +406,14 @@ while main_running:
     bullet_sprite = pygame.sprite.Group()
     enemy_bullet_sprite = pygame.sprite.Group()
     enemy_tank_sprite = pygame.sprite.Group()
-
+    horizontal_borders = pygame.sprite.Group()
+    vertical_borders = pygame.sprite.Group()
+    Border(10, 10, SIZE_LENGTH - 10, 10)
+    Border(10, SIZE_HEIGHT - 10, SIZE_LENGTH - 10, SIZE_HEIGHT - 10)
+    Border(10, 10, 10, SIZE_HEIGHT - 10)
+    Border(SIZE_LENGTH - 10, 10, SIZE_LENGTH - 10, SIZE_HEIGHT - 10)
     board = Board(13, 12)
+    score = Score()
     golden = main_tank(main_tank_sprite, speed)
     for i in range(12):
         for j in range(13):
@@ -441,7 +477,8 @@ while main_running:
         enemy_bullet_sprite.update()
         if golden.update():
             running = False
-        if enemy_tank_sprite.update(ene_flag, golden.rect, enebul_flag):
+        enemy_tank_sprite.update(ene_flag, golden.rect, enebul_flag)
+        if score.list == 5:
             print(ch)
             ch += 1
             if ch >= 1:
